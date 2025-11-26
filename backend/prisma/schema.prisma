@@ -1,0 +1,183 @@
+// This is your Prisma schema file
+// It defines your database structure
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// User model - stores all user information
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  email     String   @unique
+  password  String
+  avatar    String?
+  isOnline  Boolean  @default(false)
+  lastSeen  DateTime @default(now())
+  createdAt DateTime @default(now())
+  
+  // Relations
+  messages        Message[]
+  chatrooms       ChatroomUser[]
+  createdChatrooms Chatroom[]
+}
+
+// Chatroom model - stores chat rooms (groups and DMs)
+model Chatroom {
+  id        String   @id @default(cuid())
+  name      String
+  type      RoomType @default(GROUP)
+  avatar    String?
+  createdAt DateTime @default(now())
+  
+  // Relations
+  createdBy   User   @relation(fields: [createdById], references: [id])
+  createdById String
+  
+  users    ChatroomUser[]
+  messages Message[]
+}
+
+// ChatroomUser - join table (many-to-many relationship)
+// Tracks which users are in which chatrooms
+model ChatroomUser {
+  id         String   @id @default(cuid())
+  joinedAt   DateTime @default(now())
+  lastReadAt DateTime @default(now())
+  
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId     String
+  
+  chatroom   Chatroom @relation(fields: [chatroomId], references: [id], onDelete: Cascade)
+  chatroomId String
+  
+  @@unique([userId, chatroomId])
+}
+
+// Message model - stores all chat messages
+model Message {
+  id          String      @id @default(cuid())
+  content     String
+  messageType MessageType @default(TEXT)
+  isEdited    Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  
+  sender     User     @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  senderId   String
+  
+  chatroom   Chatroom @relation(fields: [chatroomId], references: [id], onDelete: Cascade)
+  chatroomId String
+  
+  @@index([chatroomId, createdAt])
+}
+
+// Enums
+enum RoomType {
+  PRIVATE
+  GROUP
+}
+
+enum MessageType {
+  TEXT
+  IMAGE
+  FILE
+}
+
+// Add this to your backend/prisma/schema.prisma file
+
+// New model for room invites
+model RoomInvite {
+  id          String   @id @default(cuid())
+  status      InviteStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  
+  // Who sent the invite
+  inviterId   String
+  inviter     User     @relation("SentInvites", fields: [inviterId], references: [id], onDelete: Cascade)
+  
+  // Who received the invite
+  inviteeId   String
+  invitee     User     @relation("ReceivedInvites", fields: [inviteeId], references: [id], onDelete: Cascade)
+  
+  // Which room
+  chatroomId  String
+  chatroom    Chatroom @relation(fields: [chatroomId], references: [id], onDelete: Cascade)
+  
+  @@unique([inviteeId, chatroomId])
+  @@index([inviteeId, status])
+}
+
+// New enum for invite status
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// Update existing User model - add these lines:
+model User {
+  // ... existing fields ...
+  
+  sentInvites     RoomInvite[] @relation("SentInvites")
+  receivedInvites RoomInvite[] @relation("ReceivedInvites")
+}
+
+// Update existing Chatroom model - add this line:
+model Chatroom {
+  // ... existing fields ...
+  
+  invites RoomInvite[]
+}
+
+// Add this to your backend/prisma/schema.prisma file
+
+// New model for room invites
+model RoomInvite {
+  id          String   @id @default(cuid())
+  status      InviteStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  respondedAt DateTime?
+  
+  // Who sent the invite
+  inviterId   String
+  inviter     User     @relation("SentInvites", fields: [inviterId], references: [id], onDelete: Cascade)
+  
+  // Who received the invite
+  inviteeId   String
+  invitee     User     @relation("ReceivedInvites", fields: [inviteeId], references: [id], onDelete: Cascade)
+  
+  // Which room
+  chatroomId  String
+  chatroom    Chatroom @relation(fields: [chatroomId], references: [id], onDelete: Cascade)
+  
+  @@unique([inviteeId, chatroomId])
+  @@index([inviteeId, status])
+}
+
+// New enum for invite status
+enum InviteStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+// Update existing User model - add these lines:
+model User {
+  // ... existing fields ...
+  
+  sentInvites     RoomInvite[] @relation("SentInvites")
+  receivedInvites RoomInvite[] @relation("ReceivedInvites")
+}
+
+// Update existing Chatroom model - add this line:
+model Chatroom {
+  // ... existing fields ...
+  
+  invites RoomInvite[]
+}
