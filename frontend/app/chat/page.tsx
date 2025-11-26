@@ -46,7 +46,7 @@ export default function ChatPage() {
   const [selectedUsers, setSelectedUsers] = useState<string[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const typingTimeoutRef = useRef<NodeJS.Timeout>();
+  const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Auto scroll to bottom
   const scrollToBottom = () => {
